@@ -10,6 +10,7 @@ public class DemoScene : MonoBehaviour
     public GameObject EventSystem;
     public GameObject RtcButton;
     public GameObject RtmButton;
+    public GameObject MixedButton;
 
     void Start()
     {
@@ -36,6 +37,8 @@ public class DemoScene : MonoBehaviour
             EventSystem.SetActive(true);
             RtcButton.SetActive(true);
             RtmButton.SetActive(true);
+            MixedButton.SetActive(true);
+
         }
     }
 
@@ -46,6 +49,7 @@ public class DemoScene : MonoBehaviour
         EventSystem.SetActive(false);
         RtcButton.SetActive(false);
         RtmButton.SetActive(false);
+        MixedButton.SetActive(false);
     }
 
     public void OnRtmDemo()
@@ -57,6 +61,15 @@ public class DemoScene : MonoBehaviour
         RtmButton.SetActive(false);
     }
 
+    public void OnMixedDemo()
+    {
+        this._playSceneName = "MixedScene";
+        SceneManager.LoadScene(_playSceneName, LoadSceneMode.Additive);
+        EventSystem.SetActive(false);
+        RtcButton.SetActive(false);
+        RtmButton.SetActive(false);
+        MixedButton.SetActive(false);
+    }
 
 
 }

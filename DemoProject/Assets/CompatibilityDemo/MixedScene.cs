@@ -55,11 +55,17 @@ namespace io.agora.mixed.demo
 
                 RtcEngine.EnableAudio();
                 RtcEngine.EnableVideo();
-
+                RtcEngine.SetClientRole(Agora.Rtc.CLIENT_ROLE_TYPE.CLIENT_ROLE_BROADCASTER);
                 ret = RtcEngine.JoinChannel(token, channel);
                 this.UpdateLog("[RTC]", "RtcEngine JoinChannel: " + ret);
 
             }
+        }
+
+        public void Update()
+        {
+            Agora_RTC_Plugin.API_Example.PermissionHelper.RequestMicrophontPermission();
+            Agora_RTC_Plugin.API_Example.PermissionHelper.RequestCameraPermission();
         }
 
         async public void OnRtmButton()
