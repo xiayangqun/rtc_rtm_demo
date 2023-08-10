@@ -59,6 +59,7 @@ public class DemoScene : MonoBehaviour
         EventSystem.SetActive(false);
         RtcButton.SetActive(false);
         RtmButton.SetActive(false);
+        MixedButton.SetActive(false);
     }
 
     public void OnMixedDemo()

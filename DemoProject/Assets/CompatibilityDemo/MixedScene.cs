@@ -268,7 +268,7 @@ namespace io.agora.mixed.demo
             go.AddComponent<RawImage>();
             // make the object draggable
             go.AddComponent<UIElementDrag>();
-            var canvas = GameObject.Find("Canvas");
+            var canvas = this.gameObject;
             if (canvas != null)
             {
                 go.transform.parent = canvas.transform;
