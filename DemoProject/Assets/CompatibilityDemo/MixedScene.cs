@@ -20,7 +20,7 @@ namespace io.agora.mixed.demo
         public InputField RtmChannelInput;
         public InputField RtmMessageInput;
 
-        public Agora.Rtc.IRtcEngine RtcEngine;
+        public agora_gaming_rtc.IRtcEngine RtcEngine;
         public Agora.Rtm.IRtmClient RtmClient;
 
         //rtc
@@ -44,19 +44,23 @@ namespace io.agora.mixed.demo
 
                 var token = this.RtcTokenInput.text;
 
-                RtcEngine = Agora.Rtc.RtcEngine.CreateAgoraRtcEngineEx();
-                UserEventHandler handler = new UserEventHandler(this);
-                Agora.Rtc.RtcEngineContext context = new Agora.Rtc.RtcEngineContext(appID, 0,
-                                            Agora.Rtc.CHANNEL_PROFILE_TYPE.CHANNEL_PROFILE_LIVE_BROADCASTING,
-                                            Agora.Rtc.AUDIO_SCENARIO_TYPE.AUDIO_SCENARIO_DEFAULT, Agora.Rtc.AREA_CODE.AREA_CODE_GLOB);
-                var ret = RtcEngine.Initialize(context);
-                this.UpdateLog("[RTC]", "RtcEngine init: " + ret);
-                RtcEngine.InitEventHandler(handler);
+                RtcEngine = agora_gaming_rtc.IRtcEngine.getEngine(appID);
+                RtcEngine.OnJoinChannelSuccess = this.OnJoinChannelSuccess;
+                RtcEngine.OnLeaveChannel = this.OnLeaveChannel;
+                RtcEngine.OnUserJoined = this.OnUserJoined;
+                RtcEngine.OnUserOffline = this.OnUserOffline;
+                RtcEngine.SetLogFilter(
+                    agora_gaming_rtc.LOG_FILTER.DEBUG |
+                    agora_gaming_rtc.LOG_FILTER.INFO |
+                    agora_gaming_rtc.LOG_FILTER.WARNING |
+                    agora_gaming_rtc.LOG_FILTER.ERROR |
+                    agora_gaming_rtc.LOG_FILTER.CRITICAL);
 
                 RtcEngine.EnableAudio();
                 RtcEngine.EnableVideo();
-                RtcEngine.SetClientRole(Agora.Rtc.CLIENT_ROLE_TYPE.CLIENT_ROLE_BROADCASTER);
-                ret = RtcEngine.JoinChannel(token, channel);
+                RtcEngine.EnableVideoObserver();
+                RtcEngine.SetClientRole(agora_gaming_rtc.CLIENT_ROLE_TYPE.CLIENT_ROLE_BROADCASTER);
+                var ret = RtcEngine.JoinChannelByKey(token, channel);
                 this.UpdateLog("[RTC]", "RtcEngine JoinChannel: " + ret);
 
             }
@@ -64,8 +68,7 @@ namespace io.agora.mixed.demo
 
         public void Update()
         {
-            Agora_RTC_Plugin.API_Example.PermissionHelper.RequestMicrophontPermission();
-            Agora_RTC_Plugin.API_Example.PermissionHelper.RequestCameraPermission();
+
         }
 
         async public void OnRtmButton()
@@ -164,9 +167,10 @@ namespace io.agora.mixed.demo
         {
             if (RtcEngine != null)
             {
-                RtcEngine.InitEventHandler(null);
                 RtcEngine.LeaveChannel();
-                RtcEngine.Dispose();
+
+                RtcEngine.DisableVideoObserver();
+                agora_gaming_rtc.IRtcEngine.Destroy();
             }
 
             if (RtmClient != null)
@@ -209,25 +213,18 @@ namespace io.agora.mixed.demo
             // configure videoSurface
             if (uid == 0)
             {
-                videoSurface.SetForUser(uid, channelId);
+                videoSurface.SetForUser(uid);
             }
             else
             {
-                videoSurface.SetForUser(uid, channelId, Agora.Rtc.VIDEO_SOURCE_TYPE.VIDEO_SOURCE_REMOTE);
+                videoSurface.SetForUser(uid);
             }
-
-            videoSurface.OnTextureSizeModify += (int width, int height) =>
-            {
-                float scale = (float)height / (float)width;
-                videoSurface.transform.localScale = new Vector3(-5, 5 * scale, 1);
-                Debug.Log("OnTextureSizeModify: " + width + "  " + height);
-            };
 
             videoSurface.SetEnable(true);
         }
 
         // VIDEO TYPE 1: 3D Object
-        private Agora.Rtc.VideoSurface MakePlaneSurface(string goName)
+        private agora_gaming_rtc.VideoSurface MakePlaneSurface(string goName)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Plane);
 
@@ -249,12 +246,12 @@ namespace io.agora.mixed.demo
             go.transform.localScale = new Vector3(0.25f, 0.5f, 0.5f);
 
             // configure videoSurface
-            var videoSurface = go.AddComponent<Agora.Rtc.VideoSurface>();
+            var videoSurface = go.AddComponent<agora_gaming_rtc.VideoSurface>();
             return videoSurface;
         }
 
         // Video TYPE 2: RawImage
-        private Agora.Rtc.VideoSurface MakeImageSurface(string goName)
+        private agora_gaming_rtc.VideoSurface MakeImageSurface(string goName)
         {
             GameObject go = new GameObject();
 
@@ -285,7 +282,7 @@ namespace io.agora.mixed.demo
             go.transform.localScale = new Vector3(2f, 3f, 1f);
 
             // configure videoSurface
-            var videoSurface = go.AddComponent<Agora.Rtc.VideoSurface>();
+            var videoSurface = go.AddComponent<agora_gaming_rtc.VideoSurface>();
             return videoSurface;
         }
 
@@ -397,6 +394,49 @@ namespace io.agora.mixed.demo
             }
         }
         #endregion
+
+        #region rc eventhandler
+        public void OnJoinChannelSuccess(string channelName, uint uid, int elapsed)
+        {
+            int build = 0;
+            Debug.Log("Agora: OnJoinChannelSuccess ");
+            UpdateLog("[RTC]", string.Format("sdk version: ${0}",
+                agora_gaming_rtc.IRtcEngine.GetSdkVersion()));
+            UpdateLog("[RTC]", string.Format("sdk build: ${0}",
+              build));
+            UpdateLog("[RTC]",
+                string.Format("OnJoinChannelSuccess channelName: {0}, uid: {1}, elapsed: {2}",
+                                channelName, uid, elapsed));
+            MakeVideoView(0);
+        }
+
+        public void OnLeaveChannel(agora_gaming_rtc.RtcStats stats)
+        {
+            UpdateLog("[RTC]", "OnLeaveChannel");
+        }
+
+        public void OnReJoinChannelSuccess(string channelName, uint uid, int elapsed)
+        {
+            UpdateLog("[RTC]", "OnRejoinChannelSuccess");
+        }
+
+
+        public void OnUserJoined(uint uid, int elapsed)
+        {
+            UpdateLog("[RTC]", string.Format("OnUserJoined uid: ${0} elapsed: ${1}", uid, elapsed));
+            MakeVideoView(uid, GetChannelName());
+        }
+
+
+        public void OnUserOffline(uint uid, agora_gaming_rtc.USER_OFFLINE_REASON reason)
+        {
+            UpdateLog("[RTC]", string.Format("OnUserOffLine uid: ${0}, reason: ${1}", uid,
+               (int)reason));
+            DestroyVideoView(uid);
+        }
+
+        #endregion
+
     }
 
     public class UIElementDrag : EventTrigger
@@ -409,56 +449,5 @@ namespace io.agora.mixed.demo
         }
     }
 
-    public class UserEventHandler : Agora.Rtc.IRtcEngineEventHandler
-    {
 
-        public MixedScene _sample;
-
-        public UserEventHandler(MixedScene sample)
-        {
-            this._sample = sample;
-        }
-
-        public override void OnError(int err, string msg)
-        {
-            _sample.UpdateLog("[RTC]", string.Format("OnError err: {0}, msg: {1}", err, msg));
-        }
-
-        public override void OnJoinChannelSuccess(Agora.Rtc.RtcConnection connection, int elapsed)
-        {
-            int build = 0;
-            Debug.Log("Agora: OnJoinChannelSuccess ");
-            _sample.UpdateLog("[RTC]", string.Format("sdk version: ${0}",
-                _sample.RtcEngine.GetVersion(ref build)));
-            _sample.UpdateLog("[RTC]", string.Format("sdk build: ${0}",
-              build));
-            _sample.UpdateLog("[RTC]",
-                string.Format("OnJoinChannelSuccess channelName: {0}, uid: {1}, elapsed: {2}",
-                                connection.channelId, connection.localUid, elapsed));
-            _sample.MakeVideoView(0);
-        }
-
-        public override void OnRejoinChannelSuccess(Agora.Rtc.RtcConnection connection, int elapsed)
-        {
-            _sample.UpdateLog("[RTC]", "OnRejoinChannelSuccess");
-        }
-
-        public override void OnLeaveChannel(Agora.Rtc.RtcConnection connection, Agora.Rtc.RtcStats stats)
-        {
-            _sample.UpdateLog("[RTC]", "OnLeaveChannel");
-        }
-
-        public override void OnUserJoined(Agora.Rtc.RtcConnection connection, uint uid, int elapsed)
-        {
-            _sample.UpdateLog("[RTC]", string.Format("OnUserJoined uid: ${0} elapsed: ${1}", uid, elapsed));
-            _sample.MakeVideoView(uid, _sample.GetChannelName());
-        }
-
-        public override void OnUserOffline(Agora.Rtc.RtcConnection connection, uint uid, Agora.Rtc.USER_OFFLINE_REASON_TYPE reason)
-        {
-            _sample.UpdateLog("[RTC]", string.Format("OnUserOffLine uid: ${0}, reason: ${1}", uid,
-                (int)reason));
-            _sample.DestroyVideoView(uid);
-        }
-    }
 }

@@ -44,7 +44,7 @@ public class DemoScene : MonoBehaviour
 
     public void OnRtcDemo()
     {
-        this._playSceneName = "HomeScene";
+        this._playSceneName = "SceneHome";
         SceneManager.LoadScene(_playSceneName, LoadSceneMode.Additive);
         EventSystem.SetActive(false);
         RtcButton.SetActive(false);
